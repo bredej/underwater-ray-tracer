@@ -1,3 +1,5 @@
+# This CMake file is more complicated than it needs to be 
+# to generate a Visual Studio solution tuned for the developer.
 cmake_minimum_required(VERSION 3.13)
 
 project(underwater-ray-tracer LANGUAGES CXX)
@@ -10,6 +12,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_TESTING "Build tests" OFF)
 
 if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -45,7 +48,11 @@ if (MSVC)
 	)
 endif()
 
+
 if (BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+if (BUILD_TESTING)
+    add_subdirectory(test)
+endif()
