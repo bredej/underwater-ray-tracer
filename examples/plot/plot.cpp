@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <underwater-ray-tracer/ray_tracer.hpp>
 
 #define GNUPLOT_DEPRECATE_WARN
@@ -12,11 +14,9 @@ int main()
     using namespace urt;
 
     sound_speed_profile profile;
-    profile.insert(0, 1400);
-    profile.insert(20, 1500);
-    profile.insert(60, 1300);
-    profile.insert(200, 1200);
-    profile.insert(10000, 1200);
+    profile.insert({ 0.0, 1500.0 });
+    profile.insert({ 750.0, 1462.5 });
+    profile.insert({ 4000.0, 1517.75 });
 
     ray_tracer tracer(profile);
 
@@ -24,19 +24,18 @@ int main()
     gp << "set xrange [-5:150]\nset yrange [300 : 0] reverse\n";
     gp << "plot '-' with lines title 'Ray path'\n";
 
-    //for (auto ang = 10.0_deg; ang <= 85.1_deg; ang += 5.0_deg)
-    auto ang = 20.0_deg;        // grazing angle
+    double theta = 0.00000001 * M_PI / 180.0;        // grazing angle
+    double z = 100.0;
+    double duration = 60000.0 / 1480.0;
+
     {
-        vector3d start_pos{ 0, 0, 10 };
-        //vector3d start_dir = rotate_vector(z_axis, quaternion(-x_axis, ang));
-        double duration = 150.0 / 1480.0;   // ca. 150m
-        auto path = tracer.trace(start_pos, ang, duration);
+        auto path = tracer.trace(z, theta, duration);
 
         std::vector<std::pair<double, double>> curve;
         curve.reserve(path.size());
         for (auto& pos : path)
         {
-            curve.emplace_back(pos.y(), pos.z());
+            curve.emplace_back(pos.r, pos.z);
         }
 
         gp.send1d(curve);

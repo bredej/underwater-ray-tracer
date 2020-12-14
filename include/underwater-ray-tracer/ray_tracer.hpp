@@ -1,18 +1,22 @@
 #pragma once
 
-// This is an implementation of
+// This implementation is based on
 // Ray Trace Modeling of Underwater Sound Propagation
 // by Jens M. Hovem
 // http://dx.doi.org/10.5772/55935
 
 #include <algorithm>
+#include <cassert>
 #include <map>
 #include <type_traits>
+#include <vector>
 
 namespace urt
 {
 
-template <typename T, typename = std::enable_if_t<std::is_floating_point_v<T>>>
+/// @brief Linear interpolation
+/// Available in std namespace since C++20
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 T lerp(T a, T b, T t)
 {
     return a + t*(b-a);
@@ -41,27 +45,63 @@ struct trace_pos
 using ray_path_t = std::vector<trace_pos>;
 
 
+/// @brief Sound speed c(z)
+/// Eq. (16)
+/// Within the layer the sound speed profile is approximated as linear
+/// @param z depth
+/// @return sound speed
+
+/// @brief Sound speed c(z)
+/// @param z0 depth [m]
+/// @param c0 sound speed [m/s]
+/// @param g gradient [1/s]
+/// @param z depth [m]
+/// @return 
+constexpr double sound_speed(double z0, double c0, double g, double z)
+{
+    return c0 + g * (z - z0);
+}
+
+/// @brief Sound speed gradient g
+/// The positive or negative sign of the gradient determines whether
+/// the sign of R is negative or positive, and thereby determines
+/// if the ray path curves downward or upward.
+/// @param z0 
+/// @param c0 
+/// @param z1 
+/// @param c1 
+/// @return gradient
+constexpr double sound_speed_gradient(double z0, double c0, double z1, double c1)
+{
+    return (c1 - c0) / (z1 - z0);
+}
+
+
 // Trace ray through uniform layer
 struct uniform_layer_tracer
 {
     const double _z0, _z1;       // depth of layer boundaries
     const double _c0, _c1;       // sound speed at layer boundaries
-    const double _g;            // sound speed gradient
+    const double _g;             // sound speed gradient
 
 
     uniform_layer_tracer(layer_boundary b0, layer_boundary b1) :
         _z0(b0.z), _z1(b1.z), _c0(b0.c), _c1(b1.c),
         _g(sound_speed_gradient())
-    {}
+    {
+        assert(std::fabs(_z0-_z1) > 1.0e-8);
+        assert(std::fabs(_g) > 1.0e-8);
+    }
 
     /// @brief Trace ray through layer
-    /// @param ang Gracing angle to boundary layer
+    /// @param theta Gracing angle to boundary layer
     /// @return 
     trace_t trace(double theta) const
     {
-        auto xi = ray_parameter(theta, _c0);
-        auto r = horizontal_delta(xi);
-        auto dt = travel_time_delta(xi);
+        double xi = ray_parameter(theta, _c0);
+        double r = horizontal_delta(xi);
+        double dt = travel_time_delta(xi);
+        double theta_out = std::copysign(std::acos(xi * _c1), _g);
         return { r, theta_out, dt };
     }
 
@@ -113,7 +153,7 @@ struct uniform_layer_tracer
     /// @return radius
     constexpr double ray_curvature_radius(double xi) const
     {
-        return 1.0 / (xi * sound_speed_gradient());
+        return 1.0 / (xi * _g);
     }
 
     /// @brief Range increments (Horizontal delta)
@@ -126,9 +166,16 @@ struct uniform_layer_tracer
         auto xic1 = xi * xi * _c1 * _c1;
         auto r0 = ray_curvature_radius(xi);
         if (xic1 < 1.0)
-            return r0 * (std::sqrt(1.0 - xic0) - std::sqrt(1.0 - xic1));
+        {
+            auto sin_th0 = std::sqrt(1.0 - xic0);
+            auto sin_th1 = std::sqrt(1.0 - xic1);
+            return r0 * (sin_th0 - sin_th1);
+        }
         else // ray turns
-            return 2.0 * r0 * std::sqrt(1.0 - xic0);
+        {
+            auto sin_th0 = std::sqrt(1.0 - xic0);
+            return 2.0 * r0 * sin_th0;
+        }
     }
 
     /// @brief Layer travel time
@@ -137,24 +184,20 @@ struct uniform_layer_tracer
     /// @return duration
     double travel_time_delta(double xi) const
     {
-        auto xic0 = xi * xi * _c0 * _c0;
-        auto xic1 = xi * xi * _c1 * _c1;
+        const auto xic0 = xi * xi * _c0 * _c0;
+        const auto xic1 = xi * xi * _c1 * _c1;
         if (xic1 < 1.0)
         {
-#if 1
-            double nom = _c1 * (1.0 + std::sqrt(1.0 - xic0));
-            double denom = _c0 * (1.0 + std::sqrt(1.0 - xic1));
-            //if (denom > nom) std::swap(nom, denom);                 // My hack
-            return 1.0 / std::fabs(_g) * std::log(nom / denom);
-#else
-            auto ln_c = std::log(_c1 / _c0);
-            auto ln_xi = std::log((1.0 + std::sqrt(1.0 - xic0)) / (1.0 + std::sqrt(1.0 - xic1)));
-            return 1.0 / std::fabs(_g) * (ln_c + ln_xi);
-#endif
+            auto sin_th0 = std::sqrt(1.0 - xic0);
+            auto sin_th1 = std::sqrt(1.0 - xic1);
+            //auto ln_expr = _c1 / _c0 * (1.0 + sin_th0) / (1.0 + sin_th1);
+            // assert(ln_expr >= 1.0);
+            return 1.0 / std::fabs(_g) * std::log(_c1/_c0  * (1.0 + sin_th0) / (1.0 + sin_th1));
         }
         else // ray turns
         {
-            double nom = 1 + std::sqrt(1.0 - xic0);
+            auto sin_th0 = std::sqrt(1.0 - xic0);
+            double nom = 1 + sin_th0;
             double denom = xi * _c0;
             return 2.0 * std::fabs(_g) * std::log(nom / denom);
         }
@@ -172,13 +215,15 @@ inline double sound_speed(const sound_speed_profile& svp, double z)
     if (svp.empty())
         throw std::invalid_argument("Empty sound speed profile");
 
-    if (z < svp.begin()->first)   return svp.begin()->second;
-    if (z > svp.rbegin()->first)  return svp.rbegin()->second;
-    auto range = svp.equal_range(z);
-    auto z0 = range.first->first;
-    auto z1 = range.second->first;
-    auto c0 = range.first->second;
-    auto c1 = range.second->second;
+    if (z <= svp.begin()->first)   return svp.begin()->second;
+    if (z >= svp.rbegin()->first)  return svp.rbegin()->second;
+
+    auto last = svp.upper_bound(z);
+    auto first = std::prev(last);
+    auto z0 = first->first;
+    auto z1 = last->first;
+    auto c0 = first->second;
+    auto c1 = last->second;
     auto t = (z - z0) / (z1 - z0);      // [0.0 - 1.0]
     return lerp(c0, c1, t);
 }
@@ -207,7 +252,7 @@ public:
         trace_pos pos{ z, 0 };
         path.push_back(pos);
 
-        const double dz = 1.0;
+        double dz = 10.0;
         auto z0 = z;
         auto c0 = sound_speed(_svp, z0);
         while (duration > 0)
@@ -224,7 +269,9 @@ public:
             pos.z = z1;     // or z0
             path.push_back(pos);
 
-            //ang.from_radians(std::asin(c1/c0 * std::sin(ang.in_radians())));   // refract
+            if (std::signbit(th) != std::signbit(theta))
+                dz = -dz;
+
             theta = th;
             duration -= dt;
             z0 = z1;
