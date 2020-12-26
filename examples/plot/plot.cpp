@@ -8,6 +8,10 @@
 
 using namespace gnuplotio;
 
+using curve_t = std::vector<std::pair<double, double>>;
+using curves_t = std::vector<curve_t>;
+
+
 
 int main()
 {
@@ -21,14 +25,18 @@ int main()
     ray_tracer tracer(profile);
 
     Gnuplot gp;
-    gp << "set xrange [-5:150]\nset yrange [300 : 0] reverse\n";
+    gp << "set xrange [-5:60000]\nset yrange [4500 : 0] reverse\n";
     gp << "plot '-' with lines title 'Ray path'\n";
 
-    double theta = 0.00000001 * M_PI / 180.0;        // grazing angle
     double z = 100.0;
     double duration = 60000.0 / 1480.0;
 
+    curves_t curves;
+    curves.reserve(100);
+
+    for (double ang = 1.0; ang<1.1; ang+=5.0)
     {
+        double theta = ang * M_PI / 180.0;        // grazing angle
         auto path = tracer.trace(z, theta, duration);
 
         std::vector<std::pair<double, double>> curve;
@@ -38,6 +46,7 @@ int main()
             curve.emplace_back(pos.r, pos.z);
         }
 
-        gp.send1d(curve);
+        curves.emplace_back(std::move(curve));
     }
+    gp.send2d(curves);
 }
