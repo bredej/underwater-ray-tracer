@@ -37,13 +37,13 @@ struct trace_t
 
 struct layer_boundary
 {
-    double z;           // next_depth [m]
+    double z;           // depth [m]
     double c;           // sound speed [m/s]
 };
 
 struct trace_pos
 {
-    double z;           // next_depth [m]
+    double z;           // depth [m]
     double r;           // Horizontal offset [m]
 };
 
@@ -53,10 +53,10 @@ using ray_path_t = std::vector<trace_pos>;
 /// @brief Sound speed c(z)
 /// Eq. (16)
 /// Within the layer the sound speed profile is approximated as linear
-/// @param z0 next_depth [m]
+/// @param z0 depth [m]
 /// @param c0 sound speed [m/s]
 /// @param g gradient [1/s]
-/// @param z next_depth [m]
+/// @param z depth [m]
 /// @return sound speed
 constexpr double sound_speed(double z0, double c0, double g, double z)
 {
@@ -83,7 +83,7 @@ constexpr double sound_speed_gradient(double z0, double c0, double z1, double c1
 /// @brief Ray parameter
 /// (Greek letter Xi)
 /// Eq. (1)
-/// @param theta gracing angle of ray at given next_depth (Greek theta)
+/// @param theta gracing angle of ray at given depth (Greek theta)
 /// @param c sound speed
 /// @return ray parameter
 inline double ray_parameter(double theta, double c)
@@ -91,7 +91,7 @@ inline double ray_parameter(double theta, double c)
     return std::cos(theta) / c;
 }
 
-/// @brief Ray’s radius of curvature at given next_depth R(z)
+/// @brief Ray’s radius of curvature at given depth R(z)
 /// Eq. (3)
 /// @param xi ray parameter (Greek letter Xi)
 /// @return radius
@@ -116,7 +116,7 @@ constexpr double reflect(double theta)
 // Trace ray through layer with linear sound speed
 struct linear_layer_tracer
 {
-    const double _z0, _z1;       // next_depth of layer boundaries
+    const double _z0, _z1;       // depth of layer boundaries
     const double _c0, _c1;       // sound speed at layer boundaries
 
     // Ray always enters at boundary 0 (implementation doesn't care what's up or down)
@@ -243,7 +243,7 @@ struct linear_layer_tracer
 };
 
 // Sound speed profile
-// key: next_depth [m]
+// key: depth [m]
 // value: sound speed [m/s]
 using sound_speed_profile = std::map<double, double>;
 
@@ -294,7 +294,7 @@ public:
     }
 
     // Trace ray using sound speed profile to apply refraction
-    // @param z Start next_depth for trace [m]
+    // @param z Start depth for trace [m]
     // @param theta gracing angle [rad]
     // @param duration Time limit for trace [sec]
     // @return Ray path
