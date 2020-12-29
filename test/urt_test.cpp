@@ -34,25 +34,6 @@ TEST(urt, sound_speed_4000m)
     EXPECT_DOUBLE_EQ(expected, actual);
 }
 
-
-/// @brief Find next depth that is a multiple of |dz|
-/// @param z Start depth
-/// @param dz Layer thickness (z1-z0).  Negative if ray direction is up.
-/// @return Next depth
-double next_depth(double z, double dz)
-{
-    constexpr double e = 1.0e-9;
-    if (dz > 0) // round up to multiple of dz
-    {
-        return std::ceil((z + e) / dz) * dz;
-    }
-    else        // round down to multiple of |dz|
-    {
-        dz = std::fabs(dz);
-        return std::floor((z - e) / dz) * dz;
-    }
-}
-
 TEST(urt, fmod)
 {
     EXPECT_DOUBLE_EQ(300.0, next_depth(0.0, 300.0));
