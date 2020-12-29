@@ -34,10 +34,10 @@ int main()
     curves_t curves;
     curves.reserve(100);
 
-    for (double ang = 1.0; ang<1.1; ang+=5.0)
+    for (double ang = 1.0; ang<12.1; ang+=1.0)
     {
         double theta = ang * M_PI / 180.0;        // grazing angle
-        auto path = tracer.trace(z, theta, duration);
+        auto path = tracer.trace(z, theta, duration, 5.0);
 
         std::vector<std::pair<double, double>> curve;
         curve.reserve(path.size());
