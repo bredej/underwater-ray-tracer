@@ -7,7 +7,7 @@ using namespace urt;
 
 TEST(urt, sound_speed)
 {
-    sound_speed_profile svp
+    sound_speed_profile<double> svp
     {
         { 0.0, 1400.0 },
         { 100.0 , 1500.0 },

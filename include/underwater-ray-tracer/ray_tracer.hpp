@@ -20,34 +20,38 @@ namespace urt
 /// @brief Linear interpolation
 /// Available in std namespace since C++20
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-T lerp(T a, T b, T t)
+constexpr T lerp(T a, T b, T t)
 {
     return a + t*(b-a);
 }
 
 // Exiting ray
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 struct trace_t
 {
-    double dt;          // layer travel time [s]
-    double dr;          // Horizontal offset [m]
-    double cos_th1;     // cosine of grazing angle [rad]
+    T dt;          // layer travel time [s]
+    T dr;          // Horizontal offset [m]
+    T cos_th1;     // cosine of grazing angle [rad]
     bool turns;         // ray turns
 };
 
 
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 struct layer_boundary
 {
-    double z;           // depth [m]
-    double c;           // sound speed [m/s]
+    T z;           // depth [m]
+    T c;           // sound speed [m/s]
 };
 
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 struct trace_pos
 {
-    double z;           // depth [m]
-    double r;           // Horizontal offset [m]
+    T z;           // depth [m]
+    T r;           // Horizontal offset [m]
 };
 
-using ray_path_t = std::vector<trace_pos>;
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+using ray_path_t = std::vector<trace_pos<T>>;
 
 
 /// @brief Sound speed c(z)
@@ -58,7 +62,8 @@ using ray_path_t = std::vector<trace_pos>;
 /// @param g gradient [1/s]
 /// @param z depth [m]
 /// @return sound speed
-constexpr double sound_speed(double z0, double c0, double g, double z)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+constexpr double sound_speed(T z0, T c0, T g, T z)
 {
     return c0 + g * (z - z0);
 }
@@ -72,7 +77,8 @@ constexpr double sound_speed(double z0, double c0, double g, double z)
 /// @param z1 
 /// @param c1 
 /// @return gradient
-constexpr double sound_speed_gradient(double z0, double c0, double z1, double c1)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+constexpr double sound_speed_gradient(T z0, T c0, T z1, T c1)
 {
     return (c1 - c0) / (z1 - z0);
 }
@@ -86,7 +92,8 @@ constexpr double sound_speed_gradient(double z0, double c0, double z1, double c1
 /// @param theta gracing angle of ray at given depth (Greek theta)
 /// @param c sound speed
 /// @return ray parameter
-inline double ray_parameter(double theta, double c)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+inline double ray_parameter(T theta, T c)
 {
     return std::cos(theta) / c;
 }
@@ -95,7 +102,8 @@ inline double ray_parameter(double theta, double c)
 /// Eq. (3)
 /// @param xi ray parameter (Greek letter Xi)
 /// @return radius
-constexpr double ray_curvature_radius(double xi, double g)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+constexpr double ray_curvature_radius(T xi, T g)
 {
     return -1.0 / (xi * g);
 }
@@ -104,9 +112,10 @@ constexpr double ray_curvature_radius(double xi, double g)
 /// Eq. 5
 /// @param theta Gracing angle
 /// @return angle out
-constexpr double reflect(double theta)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+constexpr double reflect(T theta)
 {
-    const double a = 0.0;       // angle of layer [rad]
+    const T a = 0.0;       // angle of layer [rad]
     return theta + 2 * a;
 }
 
@@ -114,13 +123,14 @@ constexpr double reflect(double theta)
 ///////////////////////////////////////
 
 // Trace ray through layer with linear sound speed
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 struct linear_layer_tracer
 {
-    const double _z0, _z1;       // depth of layer boundaries
-    const double _c0, _c1;       // sound speed at layer boundaries
+    const T _z0, _z1;       // depth of layer boundaries
+    const T _c0, _c1;       // sound speed at layer boundaries
 
     // Ray always enters at boundary 0 (implementation doesn't care what's up or down)
-    linear_layer_tracer(layer_boundary b0, layer_boundary b1) :
+    linear_layer_tracer(layer_boundary<T> b0, layer_boundary<T> b1) :
         _z0(b0.z), _z1(b1.z), _c0(b0.c), _c1(b1.c)
     {
         assert(std::fabs(_z0-_z1) > 1.0e-8);
@@ -130,23 +140,23 @@ struct linear_layer_tracer
     /// Ray always enters at boundary 0
     /// @param cos_th0 Cosine of gracing angle to boundary layer
     /// @return 
-    trace_t trace(double cos_theta) const
+    trace_t<T> trace(T cos_theta) const
     {
-        double g = (_c1 - _c0) / (_z1 - _z0);    // Sound speed gradient
-        double cos_th0 = cos_theta;
-        double sin_th0 = std::sqrt(1.0 - cos_th0 * cos_th0);
-        double xi = cos_th0 / _c0;               // Ray parameter Eq. (1)
-        double cos_th1 = xi * _c1;               // From Eq. 1
-        double sin_th1 = std::sqrt(1.0 - cos_th1 * cos_th1);
+        T g = (_c1 - _c0) / (_z1 - _z0);    // Sound speed gradient
+        T cos_th0 = cos_theta;
+        T sin_th0 = std::sqrt(1.0 - cos_th0 * cos_th0);
+        T xi = cos_th0 / _c0;               // Ray parameter Eq. (1)
+        T cos_th1 = xi * _c1;               // From Eq. 1
+        T sin_th1 = std::sqrt(1.0 - cos_th1 * cos_th1);
 
         // constant sound speed
         if (std::fabs(g) < 1.0e-8)
         {
             // ray as a straight line
             // Eq. 11 & 12 in https://ffi-publikasjoner.archive.knowledgearc.net/bitstream/handle/20.500.12242/2128/08-00610.pdf?sequence=1&isAllowed=y
-            double dz = std::fabs(_z1 - _z0);
-            double dt = dz / (_c1 * sin_th1);
-            double dr = dz * cos_th1 / sin_th1;
+            T dz = std::fabs(_z1 - _z0);
+            T dt = dz / (_c1 * sin_th1);
+            T dr = dz * cos_th1 / sin_th1;
             bool turns = false;
             assert(dr > 0);
             assert(dt > 1.0e-8);
@@ -165,90 +175,36 @@ struct linear_layer_tracer
         {
             // Travel time equation only works for positive gradients (dt_log_arg > 1).
             // If gradient is negative calculate travel time in opposite direction.
-            double dt_log_arg = (_c1 / _c0) * (1.0 + sin_th0) / (1.0 + sin_th1);
+            T dt_log_arg = (_c1 / _c0) * (1.0 + sin_th0) / (1.0 + sin_th1);
             if (g < 0)
                 dt_log_arg = 1 / dt_log_arg;      // swap direction
             assert(dt_log_arg >= 1);
-            double dt = 1.0 / std::fabs(g) * std::log(dt_log_arg);
+            T dt = 1.0 / std::fabs(g) * std::log(dt_log_arg);
             assert(dt > 1.0e-8);
-            double dr = 1.0 / (xi * g) * (sin_th0 - sin_th1);
+            T dr = 1.0 / (xi * g) * (sin_th0 - sin_th1);
             assert(dr > 0);
             return { dt, dr, cos_th1, turns };
         }
         else // ray turns
         {
-            double dt = 2.0 / std::fabs(g) * std::log((1.0 + std::fabs(sin_th0)) / (cos_th0));
+            T dt = 2.0 / std::fabs(g) * std::log((1.0 + std::fabs(sin_th0)) / (cos_th0));
             assert(dt > 1.0e-8);
-            double dr = 2.0 / (xi * g) * sin_th0;
+            T dr = 2.0 / (xi * g) * sin_th0;
             assert(dr > 0);
             return { dt, dr, cos_theta, turns };
         }
     }
-
-
-#if 0
-    /// @brief Range increments (Horizontal delta)
-    /// Eq. (17) and (19)
-    /// @param xi ray parameter (Greek letter Xi)
-    /// @return horizontal increment
-    double horizontal_delta(double xi, double sin_th0, double sin_th1) const
-    {
-        //auto xic0 = xi * xi * _c0 * _c0;
-        //auto xic1 = xi * xi * _c1 * _c1;
-        auto cos_th1 = std::sqrt(1.0 - sin_th1 * sin_th1);
-        if (cos_th1 < 1.0)
-        {
-            //auto sin_th0 = std::sqrt(1.0 - xic0);
-            //auto sin_th1 = std::sqrt(1.0 - xic1);
-            auto r0 = ray_curvature_radius(xi);
-            return r0 * (sin_th0 - sin_th1);
-        }
-        else // ray turns
-        {
-            //auto sin_th0 = std::sqrt(1.0 - xic0);
-            auto r0 = ray_curvature_radius(xi);
-            return 2.0 * r0 * sin_th0;
-        }
-    }
-#endif
-
-#if 0
-    /// @brief Layer travel time
-    /// Eq. (18) and (20)
-    /// @param xi ray parameter
-    /// @return duration
-    double travel_time_delta(double xi, double sin_th0, double sin_th1) const
-    {
-        //const auto xic0 = xi * xi * _c0 * _c0;
-        //const auto xic1 = xi * xi * _c1 * _c1;
-        //auto cos_th0 = std::sqrt(1.0 - sin_th0*sin_th0);
-        //auto cos_th1 = std::sqrt(1.0 - sin_th1*sin_th1);
-        //double cos_th1 = xi * _c1;                  // Eq. 1
-        if (cos_th1 < 1.0)
-        {
-            //auto sin_th0 = std::sqrt(1.0 - xic0);
-            //auto sin_th1 = std::sqrt(1.0 - xic1);
-            auto ln_expr = (cos_th1 / cos_th0) * (1.0 + sin_th0) / (1.0 + sin_th1);
-            // assert(ln_expr >= 1.0);
-            return 1.0 / /*std::fabs*/(g) * std::log(ln_expr);
-        }
-        else // ray turns
-        {
-            //auto sin_th0 = std::sqrt(1.0 - xic0);
-            double ln_expr = (1.0 + sin_th0) / (cos_th0);
-            return 2.0 * std::fabs(g) * std::log(ln_expr);
-        }
-    }
-#endif
 };
 
 // Sound speed profile
 // key: depth [m]
 // value: sound speed [m/s]
-using sound_speed_profile = std::map<double, double>;
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+using sound_speed_profile = std::map<T, T>;
 
 
-inline double sound_speed(const sound_speed_profile& svp, double z)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+inline double sound_speed(const sound_speed_profile<T>& svp, T z)
 {
     if (svp.empty())
         throw std::invalid_argument("Empty sound speed profile");
@@ -270,7 +226,8 @@ inline double sound_speed(const sound_speed_profile& svp, double z)
 /// @param z Start depth
 /// @param dz Layer thickness (z1-z0).  Negative if ray direction is up.
 /// @return Next depth
-inline double next_depth(double z, double dz)
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
+inline double next_depth(T z, T dz)
 {
     constexpr double e = 1.0e-9;
     if (dz > 0) // round up to multiple of dz
@@ -284,11 +241,15 @@ inline double next_depth(double z, double dz)
     }
 }
 
+
+/// @brief Ray tracer
+/// @tparam T 
+template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 class ray_tracer
 {
 public:
 
-    explicit ray_tracer(const sound_speed_profile& svp) :
+    explicit ray_tracer(const sound_speed_profile<T>& svp) :
         _svp(svp)
     {
     }
@@ -298,14 +259,14 @@ public:
     // @param theta gracing angle [rad]
     // @param duration Time limit for trace [sec]
     // @return Ray path
-    ray_path_t trace(double z, double theta, double duration, double dz = 50.0)
+    ray_path_t<T> trace(T z, T theta, T duration, T dz = 50.0)
     {
         if (_svp.empty())
             throw std::out_of_range("Sound speed profile is empty");
 
-        ray_path_t path;
+        ray_path_t<T> path;
         path.reserve(10000);
-        trace_pos pos{ z, 0 };
+        trace_pos<T> pos{ z, 0 };
         path.push_back(pos);
 
         auto z0 = z;
@@ -316,9 +277,9 @@ public:
             auto z1 = next_depth(z0,  dz);      // = z0 + dz;
             auto c1 = sound_speed(_svp, z1);
 
-            linear_layer_tracer layer_tracer(
-                layer_boundary{ z0, c0 },
-                layer_boundary{ z1, c1 });
+            linear_layer_tracer<double> layer_tracer(
+                layer_boundary<double>{ z0, c0 },
+                layer_boundary<double>{ z1, c1 });
 
             auto [dt, dr, cos_th1, turns] = layer_tracer.trace(cos_th0);
             if (dt <= 0) break;
@@ -341,13 +302,12 @@ public:
             z0 = z1;
             c0 = c1;
         }
-        //path.pop_back();  // TODO invalid r
         return path;
     }
 
 private:
 
-    const sound_speed_profile& _svp;
+    const sound_speed_profile<T>& _svp;
 };
 
 

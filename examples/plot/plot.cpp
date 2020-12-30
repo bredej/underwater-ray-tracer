@@ -17,7 +17,7 @@ int main()
 {
     using namespace urt;
 
-    sound_speed_profile profile;
+    sound_speed_profile<double> profile;
     profile.insert({ 0.0, 1500.0 });
     profile.insert({ 750.0, 1462.5 });
     profile.insert({ 4000.0, 1517.75 });
