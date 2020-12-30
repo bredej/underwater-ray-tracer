@@ -34,17 +34,30 @@ TEST(urt, sound_speed_4000m)
     EXPECT_DOUBLE_EQ(expected, actual);
 }
 
-TEST(urt, fmod)
+TEST(urt, next_depth)
 {
+    EXPECT_FLOAT_EQ(300.0f, next_depth(0.0f, 300.0f));
+    EXPECT_FLOAT_EQ(300.0f, next_depth(100.0f, 300.0f));
+    EXPECT_FLOAT_EQ(300.0f, next_depth(200.0f, 300.0f));
+    EXPECT_FLOAT_EQ(600.0f, next_depth(300.0f, 300.0f));
+    EXPECT_FLOAT_EQ(600.0f, next_depth(400.0f, 300.0f));
+
+    EXPECT_FLOAT_EQ(-300.0f, next_depth(0.0f, -300.0f));      // Should we throw if z < 0?
+    EXPECT_FLOAT_EQ(0.0f, next_depth(100.0f, -300.0f));
+    EXPECT_FLOAT_EQ(0.0f, next_depth(200.0f, -300.0f));
+    EXPECT_FLOAT_EQ(0.0f, next_depth(300.0f, -300.0f));
+    EXPECT_FLOAT_EQ(300.0f, next_depth(400.0f, -300.0f));
+
     EXPECT_DOUBLE_EQ(300.0, next_depth(0.0, 300.0));
     EXPECT_DOUBLE_EQ(300.0, next_depth(100.0, 300.0));
     EXPECT_DOUBLE_EQ(300.0, next_depth(200.0, 300.0));
     EXPECT_DOUBLE_EQ(600.0, next_depth(300.0, 300.0));
     EXPECT_DOUBLE_EQ(600.0, next_depth(400.0, 300.0));
 
-    EXPECT_DOUBLE_EQ(-300.0, next_depth(0.0, -300.0));      // Should we throw?
+    EXPECT_DOUBLE_EQ(-300.0, next_depth(0.0, -300.0));      // Should we throw if z < 0?
     EXPECT_DOUBLE_EQ(0.0, next_depth(100.0, -300.0));
     EXPECT_DOUBLE_EQ(0.0, next_depth(200.0, -300.0));
     EXPECT_DOUBLE_EQ(0.0, next_depth(300.0, -300.0));
     EXPECT_DOUBLE_EQ(300.0, next_depth(400.0, -300.0));
 }
+
