@@ -5,7 +5,10 @@
 //
 // This implementation is based on
 // Ray Trace Modeling of Underwater Sound Propagation
-// by Jens M. Hovem
+// and
+// PlaneRay: An acoustic underwater propagation model based 
+// on ray tracingand plane-wave reflection coefficients
+// both papers by Jens M. Hovem
 // http://dx.doi.org/10.5772/55935
 
 #include <algorithm>
@@ -30,9 +33,9 @@ template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true
 struct basic_trace
 {
     T dt;          // layer travel time [s]
-    T dr;          // Horizontal offset [m]
+    T dr;          // horizontal offset [m]
     T cos_th1;     // cosine of grazing angle [rad]
-    bool turns;         // ray turns
+    bool turns;    // ray turns
 };
 
 
@@ -47,7 +50,7 @@ template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true
 struct basic_trace_pos
 {
     T z;           // depth [m]
-    T r;           // Horizontal offset [m]
+    T r;           // horizontal offset [m]
 };
 
 /// @brief Ray path as a collection of positions (z, r)
@@ -137,26 +140,59 @@ struct basic_layer_tracer
     /// @brief Trace ray through layer
     /// Ray always enters at boundary 0
     /// @param cos_th0 Cosine of gracing angle to boundary layer
-    /// @return 
+    /// @return ray travel
     basic_trace<T> trace(T cos_theta) const
     {
+        assert(cos_theta <= 1);
         T g = (_c1 - _c0) / (_z1 - _z0);    // Sound speed gradient
         T cos_th0 = cos_theta;
-        T sin_th0 = std::sqrt(1 - cos_th0 * cos_th0);
         T xi = cos_th0 / _c0;               // Ray parameter Eq. (1)
         T cos_th1 = xi * _c1;               // From Eq. 1
+        bool turns = false;                 // Does ray turn inside layer?
+        if (cos_th1 >= 1.0)
+        {
+            turns = true;
+            cos_th1 = cos_theta;  // if ray turns inside layer, it exits at same angle as it entered
+        }
+        T sin_th0 = std::sqrt(1 - cos_th0 * cos_th0);
         T sin_th1 = std::sqrt(1 - cos_th1 * cos_th1);
+
+        // vertical ray
+        if (std::fabs(cos_th0) < 1.0e-7)
+        {
+            if (std::fabs(g) < 1.0e-8)
+            {
+                T dz = std::fabs(_z1 - _z0);
+                T dt = dz / _c1;
+                T dr = 0;
+                bool turns = false;
+                assert(dt > 1.0e-8);
+                return { dt, dr, cos_theta, turns };
+            }
+            else
+            {
+                T dt_log_arg = _c1 / _c0;
+                if (dt_log_arg < 1)
+                    dt_log_arg = 1 / dt_log_arg;      // swap direction
+                assert(dt_log_arg >= 1);
+                T dt = 1 / std::fabs(g) * std::log(dt_log_arg);
+                T dr = 0;
+                bool turns = false;
+                assert(dt > 1.0e-8);
+                return { dt, dr, cos_theta, turns };
+            }
+        }
 
         // constant sound speed
         if (std::fabs(g) < 1.0e-8)
         {
             // ray as a straight line
-            // Eq. 11 & 12 in https://ffi-publikasjoner.archive.knowledgearc.net/bitstream/handle/20.500.12242/2128/08-00610.pdf?sequence=1&isAllowed=y
+            // Eq. 11 & 12 in https://ffi-publikasjoner.archive.knowledgearc.net/bitstream/handle/20.500.12242/2128/08-00610.pdf
             T dz = std::fabs(_z1 - _z0);
             T dt = dz / (_c1 * sin_th1);
             T dr = dz * cos_th1 / sin_th1;
             bool turns = false;
-            assert(dr > 0);
+            //assert(dr >= 0);
             assert(dt > 1.0e-8);
             return { dt, dr, cos_theta, turns };
         }
@@ -164,32 +200,32 @@ struct basic_layer_tracer
         // Ray going up
         if (_z0 > _z1)
         {
-            sin_th1 = -sin_th1;
             sin_th0 = -sin_th0;
+            sin_th1 = -sin_th1;
         }
 
-        const bool turns = cos_th1 >= 1.0;
+        //const bool turns = cos_th1 >= 1.0;
         if (!turns)
         {
-            // Travel time equation only works for positive gradients (dt_log_arg > 1).
+            // Travel time equation (Eq.18) only works for positive gradients.
             // If gradient is negative calculate travel time in opposite direction.
             T dt_log_arg = (_c1 / _c0) * (1 + sin_th0) / (1 + sin_th1);
             if (g < 0)
-                dt_log_arg = 1 / dt_log_arg;      // swap direction
-            assert(dt_log_arg >= 1);
-            T dt = 1 / std::fabs(g) * std::log(dt_log_arg);
+                dt_log_arg = 1 / dt_log_arg;                    // swap direction
+            T dt = 1 / std::fabs(g) * std::log(dt_log_arg);     // ln(1/x) == -ln(x)
             assert(dt > 1.0e-8);
             T dr = 1 / (xi * g) * (sin_th0 - sin_th1);
-            assert(dr > 0);
             return { dt, dr, cos_th1, turns };
         }
         else // ray turns
         {
-            T dt = 2 / std::fabs(g) * std::log((1 + std::fabs(sin_th0)) / (cos_th0));
+            T dt_log_arg = (1 + sin_th0) / cos_th0;
+            if (g < 0)
+                dt_log_arg = 1 / dt_log_arg;                    // swap direction
+            T dt = 2 / std::fabs(g) * std::log(dt_log_arg);
             assert(dt > 1.0e-8);
             T dr = 2 / (xi * g) * sin_th0;
-            assert(dr > 0);
-            return { dt, dr, cos_theta, turns };
+            return { dt, dr, cos_th1, turns };
         }
     }
 };
@@ -259,7 +295,7 @@ public:
     {
         if (_svp.empty())
             throw std::out_of_range("Sound speed profile is empty");
-
+        dz = std::copysign(dz, std::sin(theta));
         basic_ray_path<T> path;
         path.reserve(10000);
         basic_trace_pos<T> pos{ z, 0 };
@@ -279,7 +315,7 @@ public:
 
             auto [dt, dr, cos_th1, turns] = layer_tracer.trace(cos_th0);
             if (dt <= 0) break;
-            assert(dr > 0.0);
+            //assert(dr >= 0.0);
             assert(dt >= 0.0);
 
             if (turns)
