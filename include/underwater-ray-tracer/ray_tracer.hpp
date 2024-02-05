@@ -1,7 +1,7 @@
 #pragma once
 
 // Underwater ray tracer
-// Copyright 2020 Brede Johnsen
+// Copyright 2020 Brede Johansen
 //
 // This implementation is based on
 // Ray Trace Modeling of Underwater Sound Propagation
@@ -100,7 +100,7 @@ inline T ray_parameter(T theta, T c)
     return std::cos(theta) / c;
 }
 
-/// @brief Ray’s radius of curvature at given depth R(z)
+/// @brief Rayâ€™s radius of curvature at given depth R(z)
 /// Eq. (3)
 /// @param xi ray parameter (Greek letter Xi)
 /// @return radius
