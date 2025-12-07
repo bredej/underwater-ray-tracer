@@ -1,12 +1,12 @@
 #pragma once
 
 // Underwater ray tracer
-// Copyright 2020 Brede Johansen
+// Copyright 2025 Brede Johansen
 //
 // This implementation is based on
 // Ray Trace Modeling of Underwater Sound Propagation
 // and
-// PlaneRay: An acoustic underwater propagation model based 
+// PlaneRay: An acoustic underwater propagation model based
 // on ray tracingand plane-wave reflection coefficients
 // both papers by Jens M. Hovem
 // http://dx.doi.org/10.5772/55935
@@ -54,7 +54,7 @@ struct basic_trace_pos
 };
 
 /// @brief Ray path as a collection of positions (z, r)
-/// @tparam T 
+/// @tparam T
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 using basic_ray_path = std::vector<basic_trace_pos<T>>;
 
@@ -77,10 +77,10 @@ constexpr T sound_speed(T z0, T c0, T g, T z)
 /// The positive or negative sign of the gradient determines whether
 /// the sign of R is negative or positive, and thereby determines
 /// if the ray path curves downward or upward.
-/// @param z0 
-/// @param c0 
-/// @param z1 
-/// @param c1 
+/// @param z0
+/// @param c0
+/// @param z1
+/// @param c1
 /// @return gradient
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 constexpr T sound_speed_gradient(T z0, T c0, T z1, T c1)
@@ -123,7 +123,7 @@ constexpr T reflect(T theta)
 
 
 /// @brief Trace ray through layer with linear sound speed
-/// @tparam T 
+/// @tparam T
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 struct basic_layer_tracer
 {
@@ -275,7 +275,7 @@ inline T next_depth(T z, T dz)
 
 
 /// @brief Ray tracer
-/// @tparam T 
+/// @tparam T
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 class ray_tracer
 {

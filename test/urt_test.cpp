@@ -60,4 +60,3 @@ TEST(urt, next_depth)
     EXPECT_DOUBLE_EQ(0.0, next_depth(300.0, -300.0));
     EXPECT_DOUBLE_EQ(300.0, next_depth(400.0, -300.0));
 }
-

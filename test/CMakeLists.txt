@@ -1,17 +1,15 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.26)
 
 project(urt-test LANGUAGES CXX)
 
-
 add_executable(urt-test
-	urt_test.cpp
+    urt_test.cpp
 )
 
 target_link_libraries(urt-test PRIVATE
-    underwater-ray-tracer
-    ${CONAN_TARGETS}
+    urt::urt
+    GTest::gtest_main
 )
 
-target_compile_features(urt-test PRIVATE cxx_std_17)
-
-add_test(NAME urt-test COMMAND urt-test)
+include(GoogleTest)
+gtest_discover_tests(urt-test)

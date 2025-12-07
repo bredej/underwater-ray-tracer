@@ -1,58 +1,56 @@
-# This CMake file is more complicated than it needs to be 
-# to generate a Visual Studio solution tuned for the developer.
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.26)
 
 project(underwater-ray-tracer LANGUAGES CXX)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 option(BUILD_EXAMPLES "Build examples" OFF)
 option(BUILD_TESTING "Build tests" OFF)
 
-if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-elseif(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo_multi.cmake)
-    include(${CMAKE_BINARY_DIR}/conanbuildinfo_multi.cmake)
-endif()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-conan_basic_setup(TARGETS)
+add_library(UnderwaterRayTracer INTERFACE)
+add_library(urt::urt ALIAS UnderwaterRayTracer)
 
-set(HEADER_FILES
-	"${CMAKE_CURRENT_SOURCE_DIR}/include/underwater-ray-tracer/ray_tracer.hpp"
+target_sources(UnderwaterRayTracer
+    INTERFACE
+        FILE_SET HEADERS
+        BASE_DIRS
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+        FILES
+            include/underwater-ray-tracer/ray_tracer.hpp
 )
 
-add_library(underwater-ray-tracer INTERFACE)
-add_library(underwater-ray-tracer::underwater-ray-tracer ALIAS underwater-ray-tracer)
+get_target_property(HeaderList UnderwaterRayTracer HEADER_SET)
+message(STATUS "Header files: ${HeaderList}")
 
-target_sources(underwater-ray-tracer INTERFACE "$<BUILD_INTERFACE:${HEADER_FILES}>")
-target_include_directories(underwater-ray-tracer
-	SYSTEM INTERFACE
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
-		$<INSTALL_INTERFACE:include/>
+include(GNUInstallDirs)
+
+install(TARGETS UnderwaterRayTracer
+    EXPORT UnderwaterRayTracerTargets
+    FILE_SET HEADERS
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-target_compile_features(underwater-ray-tracer INTERFACE cxx_std_17)
-
-if (MSVC)
-	# Create dummy target to show header files in IDE
-	add_custom_target(underwater-ray-tracer_
-		DEPENDS
-			${HEADER_FILES}
-		SOURCES
-			${HEADER_FILES}
-	)
-endif()
-
+install(EXPORT UnderwaterRayTracerTargets
+  FILE UnderwaterRayTracerConfig.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/UnderwaterRayTracer
+)
 
 if (BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
 if (BUILD_TESTING)
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/releases/download/v1.17.0/googletest-1.17.0.tar.gz
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    enable_testing()
     add_subdirectory(test)
 endif()
