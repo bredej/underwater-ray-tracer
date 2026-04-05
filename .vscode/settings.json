@@ -1,0 +1,22 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureArgs": [
+        "-DBUILD_TESTING=ON",
+        "-DBUILD_EXAMPLES=ON"
+    ],
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/build/_deps/googletest-src/googletest/include"
+    ],
+    "C_Cpp.default.compilerPath": "/usr/bin/g++",
+    "C_Cpp.intelliSenseEngine": "tag",
+    "[cpp]": {
+        "editor.formatOnSave": true
+    },
+    "[cmake]": {
+        "editor.formatOnSave": true
+    },
+    "cmake.generator": "Unix Makefiles"
+}
